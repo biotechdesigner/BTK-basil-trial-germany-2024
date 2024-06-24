@@ -1,11 +1,423 @@
-<h2 id="overview">Overview<ac:structured-macro ac:name="anchor" ac:schema-version="1" ac:local-id="a6aa6f25-0bee-4a7f-929b-71fcb7eba592" ac:macro-id="d2cb5be1217ae6e086bc60005e9d27b7"><ac:parameter ac:name="">overview</ac:parameter></ac:structured-macro></h2>
-<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla id accumsan justo. Nulla ut lectus efficitur, aliquet tellus elementum, hendrerit mi. Aenean risus purus, finibus eu consectetur sit amet, maximus ut tortor. Vivamus congue mollis ante in interdum. In at semper turpis, sed faucibus arcu. Nullam ultrices, neque nec mattis dictum, risus ante mattis diam, sit amet sagittis arcu ante ut urna.</p>
-<p>Quisque cursus eros dictum justo varius condimentum a ac risus. Vestibulum sodales, quam quis dignissim scelerisque, tellus turpis mollis sapien, tempor lacinia quam elit at urna. Etiam pharetra sapien at tristique tincidunt. Duis vitae lectus nisl. Proin pharetra, ante a iaculis interdum, lectus massa tempor leo, eu luctus lorem sapien vel sem. Morbi vitae tincidunt libero, eget tincidunt quam.</p>
-<h2 id="key-milestones">Key Milestones<ac:structured-macro ac:name="anchor" ac:schema-version="1" ac:local-id="a6aa6f25-0bee-4a7f-929b-71fcb7eba592" ac:macro-id="d2cb5be1217ae6e086bc60005e9d27b7"><ac:parameter ac:name="">key-milestones</ac:parameter></ac:structured-macro></h2>
-<p>Donec elementum a neque a rutrum. Nulla a quam in eros ornare fringilla at eget mi. Sed dui dolor, porta mollis auctor in, finibus vel tellus. Nunc quis ipsum sit amet magna vulputate tincidunt. Vivamus eget ornare dolor, eget rhoncus purus.</p>
-<p>Praesent ac mauris quis magna placerat hendrerit. Fusce viverra nulla nec urna pulvinar semper.</p>
-<p>Nunc sit amet libero ut ligula venenatis volutpat. Integer scelerisque iaculis lacus, et ornare velit placerat nec.</p>
-<p>Phasellus nisi ante, dignissim quis metus nec, consequat bibendum lacus.</p>
+<h1 data-number="1" id="dataset-and-libraries-used-for-the-analysis">1. Dataset and libraries used for the analysis<ac:structured-macro ac:name="anchor" ac:schema-version="1" ac:local-id="a6aa6f25-0bee-4a7f-929b-71fcb7eba592" ac:macro-id="d2cb5be1217ae6e086bc60005e9d27b7"><ac:parameter ac:name="">dataset-and-libraries-used-for-the-analysis</ac:parameter></ac:structured-macro></h1>
+<p>Below is a list of libraries used in conjunction with the R programming language, Quarto, and Jupyter for the creation of this statistical analysis. All datasets and libraries needed were imported at the start of the quarto project. Data was imported into a GitHub Repository to access it directly. <a href='https://github.com/biotechdesigner/quinoa-analysis-coursework/tree/main' title=''>Access the repository</a>. The raw data <code>data</code> was selected to include only the traits desired. This data is referred to as <code>selected_data</code> in the project code. The dataset <code>data</code> was modified to treat missing data as described in <ac:link><ri:attachment ri:filename="#sec-miss"/><ac:plain-text-link-body><![CDATA[Section 3.3]]></ac:plain-text-link-body></ac:link>. This data is referred in this project as <code>imputed_data</code></p>
+<div class="cell" data-execution_count="1">
+<ac:structured-macro
+      ac:name="code"
+      ac:schema-version="1"
+      ac:macro-id="1d1a2d13-0179-4d8f-b448-b28dfaceea4a">
+        <ac:parameter ac:name="language">python</ac:parameter>
+        <ac:plain-text-body>
+          <![CDATA[import math
+import pandas as pd
+import numpy as np
+import scipy.stats as stats
+import matplotlib.pyplot as plt
+import seaborn as sns
+import statsmodels.api as sm
+from itables import options, show
+
+#import data
+data = pd.read_csv('btk_de_basil_2024.csv')
+
+#Get list of treeatments in dataset
+treatments = data['Treatment'].unique()
+
+#get numerical variables
+numerical_variables = data.select_dtypes(include=['float64', 'int64']).columns.tolist()
+
+#define categorical variables
+categorical_variables = data.select_dtypes(include=['object', 'category']).columns.tolist()
+
+#group data by treatment
+grouped_data_treatment = data.groupby('Treatment')
+
+#Only include the data of the final date of the experiment for data analysis
+final_date = '2024-05-25'
+data_may25 = data[data['TimeStamp'] == final_date]
+
+#data.head()
+pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)
+grouped_data_treatment.head()]]>
+        </ac:plain-text-body>
+    </ac:structured-macro>
+</div>
+<h1 data-number="2" id="data-description">2. Data Description<ac:structured-macro ac:name="anchor" ac:schema-version="1" ac:local-id="a6aa6f25-0bee-4a7f-929b-71fcb7eba592" ac:macro-id="d2cb5be1217ae6e086bc60005e9d27b7"><ac:parameter ac:name="">data-description</ac:parameter></ac:structured-macro></h1>
+<p>The dataset contains measurements from 360 quinoa accessions, detailing various seed traits retreived from <span class="citation" data-cites="craine-2023">@craine-2023</span>. The data includes continuous measurements such as lysine content (measured in mg/g), yield (measured in g/plant) and Thousand Seed Weight, or TSW (measured in grams).</p>
+<h1 data-number="3" id="statistical-analysis">3. Statistical analysis<ac:structured-macro ac:name="anchor" ac:schema-version="1" ac:local-id="a6aa6f25-0bee-4a7f-929b-71fcb7eba592" ac:macro-id="d2cb5be1217ae6e086bc60005e9d27b7"><ac:parameter ac:name="">statistical-analysis</ac:parameter></ac:structured-macro></h1>
+<h2 data-number="3.1" id="plant-height">3.1 Plant Height<ac:structured-macro ac:name="anchor" ac:schema-version="1" ac:local-id="a6aa6f25-0bee-4a7f-929b-71fcb7eba592" ac:macro-id="d2cb5be1217ae6e086bc60005e9d27b7"><ac:parameter ac:name="">plant-height</ac:parameter></ac:structured-macro></h2>
+<h3 data-number="3.1.1" id="descriptive-analysis">3.1.1 Descriptive analysis<ac:structured-macro ac:name="anchor" ac:schema-version="1" ac:local-id="a6aa6f25-0bee-4a7f-929b-71fcb7eba592" ac:macro-id="d2cb5be1217ae6e086bc60005e9d27b7"><ac:parameter ac:name="">descriptive-analysis</ac:parameter></ac:structured-macro></h3>
+<div class="cell" data-scrollable="true" data-execution_count="2">
+<ac:structured-macro
+      ac:name="code"
+      ac:schema-version="1"
+      ac:macro-id="1d1a2d13-0179-4d8f-b448-b28dfaceea4a">
+        <ac:parameter ac:name="language">python</ac:parameter>
+        <ac:plain-text-body>
+          <![CDATA[descr_analysis_PlantHeight = grouped_data_treatment['PlantHeight'].describe().transpose()
+# Set display options to show all columns and rows
+pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)
+
+# Print the full descriptive statistics table
+show(descr_analysis_PlantHeight, "")]]>
+        </ac:plain-text-body>
+    </ac:structured-macro>
+<div id="tbl-descriptive-analysis-plantheight" class="cell" data-execution_count="2" data-scrollable="true">
+<ac:structured-macro ac:name="anchor" ac:schema-version="1" ac:local-id="a6aa6f25-0bee-4a7f-929b-71fcb7eba592" ac:macro-id="d2cb5be1217ae6e086bc60005e9d27b7"><ac:parameter ac:name="">tbl-descriptive-analysis-plantheight</ac:parameter></ac:structured-macro>
+<div class="cell-output cell-output-display">
+
+</div>
+Table 1: Descriptive analysis of Plant Height
+</div>
+</div>
+<h3 data-number="3.1.2" id="normality-test">3.1.2 Normality Test<ac:structured-macro ac:name="anchor" ac:schema-version="1" ac:local-id="a6aa6f25-0bee-4a7f-929b-71fcb7eba592" ac:macro-id="d2cb5be1217ae6e086bc60005e9d27b7"><ac:parameter ac:name="">normality-test</ac:parameter></ac:structured-macro></h3>
+<p>Debido a que se tiene una muestra total</p>
+<div class="cell" data-execution_count="3">
+<ac:structured-macro
+      ac:name="code"
+      ac:schema-version="1"
+      ac:macro-id="1d1a2d13-0179-4d8f-b448-b28dfaceea4a">
+        <ac:parameter ac:name="language">python</ac:parameter>
+        <ac:plain-text-body>
+          <![CDATA[from scipy.stats import shapiro, kstest, anderson
+import scipy.stats as stats
+normality_results = {}
+variables = ['PlantHeight', 'StemDiameter', 'LeafArea', 'LeafNumber']
+
+# Normality test for every treatment and variable
+for Treatment, group in grouped_data_treatment:
+    normality_results[Treatment] = {}
+    for variable in variables:
+        # filter non-null data
+        valid_data = group[variable].dropna()
+        if len(valid_data) > 0:  # Validation that there is enough data to test
+            # Shapiro-Wilk test
+            shapiro_test = shapiro(valid_data)
+            # Kolmogorov-Smirnov test
+            ks_test = kstest(valid_data, 'norm')
+            # Anderson-Darling test
+            anderson_test = anderson(valid_data)
+
+            # Save results
+            normality_results[Treatment][variable] = {
+                'Shapiro-Wilk': shapiro_test,
+                'Kolmogorov-Smirnov': ks_test,
+                'Anderson-Darling': anderson_test
+            }
+
+# Show results
+#import pprint
+#pprint.pprint(normality_results)
+#print(normality_results)
+
+def plot_histogram_qq(data, treatment, variable, normality_results):
+    valid_data = data[data['Treatment'] == treatment][variable].dropna()
+    
+    if len(valid_data) > 0:
+        # Histograma
+        plt.figure(figsize=(12, 6))
+        plt.subplot(1, 2, 1)
+        plt.hist(valid_data, bins=10, color='blue', edgecolor='black', alpha=0.7)
+        plt.title(f'Histogram of Frequency for {variable} ({treatment})')
+        plt.xlabel(variable)
+        plt.ylabel('Frecuency')
+        
+        # Gráfico Q-Q
+        plt.subplot(1, 2, 2)
+        stats.probplot(valid_data, dist="norm", plot=plt)
+        plt.title(f'Q-Q Graphic of {variable} ({treatment})')
+        plt.xlabel('Normal Theoretical quantiles')
+        plt.ylabel('Normal Data Quantiles')
+        
+        # Obtener resultados de los tests
+        shapiro_res = normality_results[treatment][variable]['Shapiro-Wilk']
+        ks_res = normality_results[treatment][variable]['Kolmogorov-Smirnov']
+        anderson_res = normality_results[treatment][variable]['Anderson-Darling']
+        
+        # Crear texto descriptivo
+        description = (f"Shapiro-Wilk p-value: {shapiro_res.pvalue:.3e}\n"
+                       f"Kolmogorov-Smirnov p-value: {ks_res.pvalue:.3e}\n"
+                       f"Anderson-Darling statistic: {anderson_res.statistic:.3f}")
+        
+        # Add descriptive text to histogram
+        plt.subplot(1, 2, 1)
+        plt.text(0.95, 0.95, description, transform=plt.gca().transAxes, fontsize=10,
+                 verticalalignment='top', horizontalalignment='right', bbox=dict(facecolor='white', alpha=0.5))
+        
+        # Show graphics
+        plt.tight_layout()
+        plt.show()
+        
+        # Normality test
+        print("Normality analysis")
+        print(f"Shapiro-Wilk p-value: {shapiro_res.pvalue:.3e} ({'Not enough evidence to reject' if shapiro_res.pvalue > 0.05 else 'Rejects'} Normality hipothesis)")
+        print(f"Kolmogorov-Smirnov p-value: {ks_res.pvalue:.3e} ({'Not enough evidence to reject' if ks_res.pvalue > 0.05 else 'Rejects'} Normality hipothesis)")
+        print(f"Anderson-Darling statistic: {anderson_res.statistic:.3f} (Compare with critical values: {anderson_res.critical_values})")
+    else:
+        print(f"Not enough data for {variable} in treatment {treatment}")
+
+
+# Example of use for treatment B100 and PlantHeight Variable
+plot_histogram_qq(data, 'B80', 'PlantHeight', normality_results)
+]]>
+        </ac:plain-text-body>
+    </ac:structured-macro>
+<div class="cell-output cell-output-stdout">
+<ac:structured-macro
+      ac:name="code"
+      ac:schema-version="1"
+      ac:macro-id="1d1a2d13-0179-4d8f-b448-b28dfaceea4a">
+        <ac:parameter ac:name="language"></ac:parameter>
+        <ac:plain-text-body>
+          <![CDATA[Normality analysis
+Shapiro-Wilk p-value: 4.529e-02 (Rejects Normality hipothesis)
+Kolmogorov-Smirnov p-value: 3.797e-79 (Rejects Normality hipothesis)
+Anderson-Darling statistic: 0.771 (Compare with critical values: [0.523 0.596 0.715 0.834 0.992])]]>
+        </ac:plain-text-body>
+    </ac:structured-macro>
+</div>
+<div id="tbl-normality-test-plantheight" class="cell" data-execution_count="3">
+<ac:structured-macro ac:name="anchor" ac:schema-version="1" ac:local-id="a6aa6f25-0bee-4a7f-929b-71fcb7eba592" ac:macro-id="d2cb5be1217ae6e086bc60005e9d27b7"><ac:parameter ac:name="">tbl-normality-test-plantheight</ac:parameter></ac:structured-macro>
+<div class="cell-output cell-output-display">
+<ac:structured-macro ac:name="anchor" ac:schema-version="1" ac:local-id="a6aa6f25-0bee-4a7f-929b-71fcb7eba592" ac:macro-id="d2cb5be1217ae6e086bc60005e9d27b7"><ac:parameter ac:name="">tbl-normality-test-plantheight-1</ac:parameter></ac:structured-macro>
+<p><ac:structured-macro ac:name="anchor" ac:schema-version="1" ac:local-id="a6aa6f25-0bee-4a7f-929b-71fcb7eba592" ac:macro-id="d2cb5be1217ae6e086bc60005e9d27b7"><ac:parameter ac:name="">tbl-normality-test-plantheight-1</ac:parameter></ac:structured-macro></p><ac:image
+    ac:align="center"
+    ac:layout="center"
+    ac:alt="">
+        <ri:attachment ri:filename="DataAnalysis1_files/figure-publish/tbl-normality-test-plantheight-output-1.png" /><ac:caption>(a)</ac:caption>
+    </ac:image>
+</div>
+Table 2: Normality test of Plant Height by treatment
+</div>
+</div>
+<h3 data-number="3.1.3" id="frequency-distribution">3.1.3 Frequency Distribution<ac:structured-macro ac:name="anchor" ac:schema-version="1" ac:local-id="a6aa6f25-0bee-4a7f-929b-71fcb7eba592" ac:macro-id="d2cb5be1217ae6e086bc60005e9d27b7"><ac:parameter ac:name="">frequency-distribution</ac:parameter></ac:structured-macro></h3>
+<div class="cell" data-tbl-cap="Frequency Distribution of Plant Height" data-execution_count="4">
+<ac:structured-macro
+      ac:name="code"
+      ac:schema-version="1"
+      ac:macro-id="1d1a2d13-0179-4d8f-b448-b28dfaceea4a">
+        <ac:parameter ac:name="language">python</ac:parameter>
+        <ac:plain-text-body>
+          <![CDATA[fig, axes = plt.subplots(nrows=2, ncols=3, figsize=(18, 12))
+axes = axes.flatten()
+
+
+for ax, (treatment, group) in zip(axes, grouped_data_treatment):
+    ax.hist(group['PlantHeight'], bins=10, edgecolor='black', alpha=0.7)
+    ax.set_title(f'Frequency Distribution of Plant Height for Treatment {treatment}')
+    ax.set_xlabel('Plant Height')
+    ax.set_ylabel('Frequency')
+    ax.grid(axis='y', alpha=0.75)
+
+# Hide any empty subplots
+for i in range(len(grouped_data_treatment), len(axes)):
+    fig.delaxes(axes[i])
+
+# Adjust layout
+plt.tight_layout()
+
+# Save the combined figure as an image
+plt.savefig('combined_histograms.png')
+
+# Show the combined figure
+plt.show()]]>
+        </ac:plain-text-body>
+    </ac:structured-macro>
+<div class="cell-output cell-output-display">
+<ac:structured-macro ac:name="anchor" ac:schema-version="1" ac:local-id="a6aa6f25-0bee-4a7f-929b-71fcb7eba592" ac:macro-id="d2cb5be1217ae6e086bc60005e9d27b7"><ac:parameter ac:name="">fig-frequency-distribution-plantheight</ac:parameter></ac:structured-macro>
+<p><ac:structured-macro ac:name="anchor" ac:schema-version="1" ac:local-id="a6aa6f25-0bee-4a7f-929b-71fcb7eba592" ac:macro-id="d2cb5be1217ae6e086bc60005e9d27b7"><ac:parameter ac:name="">fig-frequency-distribution-plantheight</ac:parameter></ac:structured-macro></p><ac:image
+    ac:align="center"
+    ac:layout="center"
+    ac:alt="">
+        <ri:attachment ri:filename="DataAnalysis1_files/figure-publish/fig-frequency-distribution-plantheight-output-1.png" /><ac:caption>Figure 1</ac:caption>
+    </ac:image>
+</div>
+</div>
+<h2 data-number="3.2" id="stem-diameter">3.2 Stem Diameter<ac:structured-macro ac:name="anchor" ac:schema-version="1" ac:local-id="a6aa6f25-0bee-4a7f-929b-71fcb7eba592" ac:macro-id="d2cb5be1217ae6e086bc60005e9d27b7"><ac:parameter ac:name="">stem-diameter</ac:parameter></ac:structured-macro></h2>
+<h3 data-number="3.2.1" id="descriptive-analysis-1">3.2.1 Descriptive analysis<ac:structured-macro ac:name="anchor" ac:schema-version="1" ac:local-id="a6aa6f25-0bee-4a7f-929b-71fcb7eba592" ac:macro-id="d2cb5be1217ae6e086bc60005e9d27b7"><ac:parameter ac:name="">descriptive-analysis-1</ac:parameter></ac:structured-macro></h3>
+<div class="cell" data-scrollable="true" data-execution_count="5">
+<ac:structured-macro
+      ac:name="code"
+      ac:schema-version="1"
+      ac:macro-id="1d1a2d13-0179-4d8f-b448-b28dfaceea4a">
+        <ac:parameter ac:name="language">python</ac:parameter>
+        <ac:plain-text-body>
+          <![CDATA[descr_analysis_StemDiam = grouped_data_treatment['StemDiameter'].describe().transpose()
+# Set display options to show all columns and rows
+pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)
+
+# Print the full descriptive statistics table
+show(descr_analysis_StemDiam, "")]]>
+        </ac:plain-text-body>
+    </ac:structured-macro>
+<div id="tbl-descriptive-analysis-stemdiameter" class="cell" data-execution_count="5" data-scrollable="true">
+<ac:structured-macro ac:name="anchor" ac:schema-version="1" ac:local-id="a6aa6f25-0bee-4a7f-929b-71fcb7eba592" ac:macro-id="d2cb5be1217ae6e086bc60005e9d27b7"><ac:parameter ac:name="">tbl-descriptive-analysis-stemdiameter</ac:parameter></ac:structured-macro>
+<div class="cell-output cell-output-display">
+
+</div>
+Table 3: Descriptive analysis of Stem Diameter
+</div>
+</div>
+<h2 data-number="3.3" id="sec-miss">3.3 Missing Data Assessment<ac:structured-macro ac:name="anchor" ac:schema-version="1" ac:local-id="a6aa6f25-0bee-4a7f-929b-71fcb7eba592" ac:macro-id="d2cb5be1217ae6e086bc60005e9d27b7"><ac:parameter ac:name="">sec-miss</ac:parameter></ac:structured-macro></h2>
+<p>There is not really missing data, the cuantitative variables of the plant were measured every week, but the water stress incidents were taken every day because irrigation was made everyday by hand, so pandas library is used because it can handle missing data without the need to manipulate the data sheet.</p>
+<h2 data-number="3.4" id="sec-dis">3.4 Frequency Distribution Analysis<ac:structured-macro ac:name="anchor" ac:schema-version="1" ac:local-id="a6aa6f25-0bee-4a7f-929b-71fcb7eba592" ac:macro-id="d2cb5be1217ae6e086bc60005e9d27b7"><ac:parameter ac:name="">sec-dis</ac:parameter></ac:structured-macro></h2>
+<p>From <strong>?@fig-lysine-distribution</strong>, it is visually inferred that the data seems to be approximately normally distributed with a single peak and symmetric shape, however, it doesn´t follow exactly the bell curve, so it is needed to do a nromality test to make sure how the data is distributed.</p>
+<h2 data-number="3.5" id="normality-test-1">3.5 Normality Test<ac:structured-macro ac:name="anchor" ac:schema-version="1" ac:local-id="a6aa6f25-0bee-4a7f-929b-71fcb7eba592" ac:macro-id="d2cb5be1217ae6e086bc60005e9d27b7"><ac:parameter ac:name="">normality-test-1</ac:parameter></ac:structured-macro></h2>
+<ac:structured-macro
+      ac:name="code"
+      ac:schema-version="1"
+      ac:macro-id="1d1a2d13-0179-4d8f-b448-b28dfaceea4a">
+        <ac:parameter ac:name="language">{r normal_distribution}</ac:parameter>
+        <ac:plain-text-body>
+          <![CDATA[#| label: tbl-normal-distribution
+#| tbl-cap: "Shapiro_Wilk test results for lysine content"
+#| warning: false
+
+#Test for normal distribution
+normality <- shapiro.test(imputed_data$Lysine.14.mgG)
+result <- data.frame(
+    W = normality$statistic,
+    Pvalue = normality$p.value
+)
+kable(result, align = "llr")]]>
+        </ac:plain-text-body>
+    </ac:structured-macro>
+<p>The Shapiro-Wilk normality test has a p-value of almost 0 which is far below any conventional alpha level (e.g., 0.05). despite the high W value, the test finds significant evidence to suggest that the lysine content does not follow a normal distribution. For that reason, this will be needed to take into account the correlation and regression analyses.</p>
+<h2 data-number="3.6" id="sec-corr">3.6 Correlation analysis<ac:structured-macro ac:name="anchor" ac:schema-version="1" ac:local-id="a6aa6f25-0bee-4a7f-929b-71fcb7eba592" ac:macro-id="d2cb5be1217ae6e086bc60005e9d27b7"><ac:parameter ac:name="">sec-corr</ac:parameter></ac:structured-macro></h2>
+<ac:structured-macro
+      ac:name="code"
+      ac:schema-version="1"
+      ac:macro-id="1d1a2d13-0179-4d8f-b448-b28dfaceea4a">
+        <ac:parameter ac:name="language">{r correlation_analysis_yield}</ac:parameter>
+        <ac:plain-text-body>
+          <![CDATA[#| label: fig-correlation_yield
+#| fig-cap: "Correlation analysis between Lysine content and Yield traits"
+#| warning: false
+#| fig.width: 8
+#| fig.height: 4
+
+#Add a column in imputed data with Lysine content transformed to logaritmic values
+imputed_data$Lysine.14.mgG_log <- log(imputed_data$Lysine.14.mgG)
+
+#Correlation analysis
+cor_value_yield <- cor(imputed_data$Lysine.14.mgG_log, imputed_data$Yield_g, 
+method = "spearman")
+
+# Correlation plot
+ggplot(imputed_data, aes(x = Lysine.14.mgG_log, y = Yield_g)) +
+  geom_point(shape = 21, fill = '#0f993d', color = 'white', size = 3) +
+  annotate("text", x = Inf, y = Inf, label = paste("Spearman Correlation: ", 
+    round(cor_value_yield, 5)),
+           hjust = 1.1, vjust = 1.1) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Lysine content  log(mg/g)", y = "Yield (g/plant)") ]]>
+        </ac:plain-text-body>
+    </ac:structured-macro>
+<h3 data-number="3.6.1" id="correlation-of-lysine-content-and-tsw">3.6.1 Correlation of Lysine content and TSW<ac:structured-macro ac:name="anchor" ac:schema-version="1" ac:local-id="a6aa6f25-0bee-4a7f-929b-71fcb7eba592" ac:macro-id="d2cb5be1217ae6e086bc60005e9d27b7"><ac:parameter ac:name="">correlation-of-lysine-content-and-tsw</ac:parameter></ac:structured-macro></h3>
+<ac:structured-macro
+      ac:name="code"
+      ac:schema-version="1"
+      ac:macro-id="1d1a2d13-0179-4d8f-b448-b28dfaceea4a">
+        <ac:parameter ac:name="language">{r correlation_analysis_tsw}</ac:parameter>
+        <ac:plain-text-body>
+          <![CDATA[#| label: fig-correlation_tsw
+#| fig-cap: "Correlation analysis between Lysine content and Thousand Seed Weight (TSW)"
+#| warning: false
+
+#Correlation analysis
+cor_value_tsw <- cor(imputed_data$Lysine.14.mgG_log, imputed_data$TSW, 
+method = "spearman")
+
+# Correlation plot
+ggplot(
+  imputed_data, aes(x = Lysine.14.mgG_log, y = TSW)) +
+  geom_point(shape = 21, fill = '#0f993d', color = 'white', size = 3) +
+  annotate("text", x = Inf, y = Inf, label = paste("Spearman Correlation: ", 
+  round(cor_value_tsw, 5)), hjust = 1.1, vjust = 1.1) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Lysine content log(mg/g)", y = "TSW (g)"
+)]]>
+        </ac:plain-text-body>
+    </ac:structured-macro>
+<p>As can be seen, the correlation level between yield variables and lysine content is moderately positive (0.30 with yield and 0.39 with TSW) similar as reported in <span class="citation" data-cites="craine-2023">@craine-2023</span>, indicating that when the lysine content in quinoa seeds is higher, the yield and TSW will also be higher.</p>
+<h2 data-number="3.7" id="sec-reg">3.7 Regression analysis<ac:structured-macro ac:name="anchor" ac:schema-version="1" ac:local-id="a6aa6f25-0bee-4a7f-929b-71fcb7eba592" ac:macro-id="d2cb5be1217ae6e086bc60005e9d27b7"><ac:parameter ac:name="">sec-reg</ac:parameter></ac:structured-macro></h2>
+<h3 data-number="3.7.1" id="regression-analysis-and-ecuation-of-lysine-content-and-yield">3.7.1 Regression analysis and ecuation of Lysine content and Yield<ac:structured-macro ac:name="anchor" ac:schema-version="1" ac:local-id="a6aa6f25-0bee-4a7f-929b-71fcb7eba592" ac:macro-id="d2cb5be1217ae6e086bc60005e9d27b7"><ac:parameter ac:name="">regression-analysis-and-ecuation-of-lysine-content-and-yield</ac:parameter></ac:structured-macro></h3>
+<p>This analysis is crucial for understanding the relationship between these two variables, indicating whether higher lysine content correlates with higher yield. In <strong>?@tbl-regression_yield</strong>, it is observed that the p-value is less than 0.05, leading to the rejection of the null hypothesis and the conclusion that there is a significant relationship between lysine content and yield. Furthermore, the R^2 value indicates that approximately 10% of the variability in Yield_g is explained by the model. This suggests that there are other factors influencing the yield that are not accounted for in this analysis. Additionally, this analysis is based on a single value derived from many, so it was expected that lysine content would not explain the entire model. For this same reason, the reported regression equation will not be as precise for determining yield values.</p>
+<ac:structured-macro
+      ac:name="code"
+      ac:schema-version="1"
+      ac:macro-id="1d1a2d13-0179-4d8f-b448-b28dfaceea4a">
+        <ac:parameter ac:name="language">{r regression_analysis_yield}</ac:parameter>
+        <ac:plain-text-body>
+          <![CDATA[#| label: tbl-regression_yield
+#| tbl-cap: "Regression analysis between Lysine content and Yield"
+#| warning: false
+
+#Regression analysis 
+reg1_yield <- lm(Yield_g ~ Lysine.14.mgG_log, data = imputed_data)
+sum_reg1_yield <- summary(reg1_yield)
+broom_yield_summary <- broom::glance(sum_reg1_yield)
+knitr::kable(broom_yield_summary, align = "llllllrr")]]>
+        </ac:plain-text-body>
+    </ac:structured-macro>
+<ac:structured-macro
+      ac:name="code"
+      ac:schema-version="1"
+      ac:macro-id="1d1a2d13-0179-4d8f-b448-b28dfaceea4a">
+        <ac:parameter ac:name="language">{r coef_analysis_yield}</ac:parameter>
+        <ac:plain-text-body>
+          <![CDATA[#| label: coef_yield
+#| warning: false
+#| cap: "Regression ecuation between Lysine content and Yield"
+
+#Regression and coefficient analysis
+coefs_yield <- coef(reg1_yield)
+paste("Y =", coefs_yield[1], "+", coefs_yield[2], "* X")
+]]>
+        </ac:plain-text-body>
+    </ac:structured-macro>
+<h3 data-number="3.7.2" id="regression-analysis-and-ecuation-of-lysine-content-and-thousand-seed-weight-tsw">3.7.2 Regression analysis and ecuation of Lysine content and Thousand Seed Weight TSW<ac:structured-macro ac:name="anchor" ac:schema-version="1" ac:local-id="a6aa6f25-0bee-4a7f-929b-71fcb7eba592" ac:macro-id="d2cb5be1217ae6e086bc60005e9d27b7"><ac:parameter ac:name="">regression-analysis-and-ecuation-of-lysine-content-and-thousand-seed-weight-tsw</ac:parameter></ac:structured-macro></h3>
+<p>The outcome of this analysis delineates the potential relationship between lysine content and Thousand Seed Weight (TSW). Similar to the previous regression analysis, the null hypothesis can be rejected, leading to the conclusion that there is a highly significant relationship between lysine content and TSW. However, the R^2 value is quite low (13%), indicating that there are other factors affecting TSW that are not considered in this analysis, which was to be expected.</p>
+<ac:structured-macro
+      ac:name="code"
+      ac:schema-version="1"
+      ac:macro-id="1d1a2d13-0179-4d8f-b448-b28dfaceea4a">
+        <ac:parameter ac:name="language">{r regression_analysis_tsw}</ac:parameter>
+        <ac:plain-text-body>
+          <![CDATA[#| label: tbl-regression_tsw
+#| tbl-cap: "Regression analysis between Lysine content and Thousand Seed Weight (TSW)"
+#| warning: false
+
+#Regression analysis 
+reg1_tsw <- lm(TSW ~ Lysine.14.mgG_log, data = imputed_data)
+sum_reg1_tsw <- summary(reg1_tsw)
+broom_tsw_summary <- broom::glance(sum_reg1_tsw)
+knitr::kable(broom_tsw_summary, align = "llllllrr")]]>
+        </ac:plain-text-body>
+    </ac:structured-macro>
+<ac:structured-macro
+      ac:name="code"
+      ac:schema-version="1"
+      ac:macro-id="1d1a2d13-0179-4d8f-b448-b28dfaceea4a">
+        <ac:parameter ac:name="language">{r coef_analysis_tsw}</ac:parameter>
+        <ac:plain-text-body>
+          <![CDATA[#| label: coef_tsw
+#| warning: false
+#| cap: "Regression ecuation between Lysine content and Thousand Seed Weight (TSW)"
+
+#Regression and coefficient analysis
+coefs_yield <- coef(reg1_tsw)
+paste("Y =", coefs_yield[1], "+", coefs_yield[2], "* X")]]>
+        </ac:plain-text-body>
+    </ac:structured-macro>
+<h1 data-number="4" id="discussion">4. Discussion<ac:structured-macro ac:name="anchor" ac:schema-version="1" ac:local-id="a6aa6f25-0bee-4a7f-929b-71fcb7eba592" ac:macro-id="d2cb5be1217ae6e086bc60005e9d27b7"><ac:parameter ac:name="">discussion</ac:parameter></ac:structured-macro></h1>
+<p>The analysis of quinoa seed traits, particularly focusing on lysine content, yield, and thousand seed weight (TSW), provides some insights into quinoa’s genetic diversity and agricultural potential. In the initial phase of the analysis, a significant proportion of data pertaining to lysine content was found to be missing in <strong>?@fig-missing-data-interest</strong>, presenting a substantial challenge in the data evaluation process. This issue could arise from a multitude of factors, each with varying implications. Consequently, a decision was made to retain the data rows and employ multiple imputation techniques. This approach aimed to provide an alternative perspective to the analyses previously conducted by <span class="citation" data-cites="craine-2023">@craine-2023</span>. Following the implementation of multiple imputation, the deviation of the dataset from a normal distribution suggested potential specific influences on the yield and Thousand Seed Weight (TSW) of the quinoa seeds as it can be seen in <strong>?@tbl-normal-distribution</strong>. Subsequent regression and correlation analyses, focusing on the lysine content in relation to yield and TSW, confirmed the existence of a moderate positive correlation, as seen in <strong>?@fig-correlation_yield</strong> and <strong>?@fig-correlation_tsw</strong>. It was observed that lysine content in quinoa seeds positively impacts both yield and TSW. Nonetheless, it is important to recognize that this is not the only influential factor in the model construction, which was confirmed in <strong>?@tbl-regression_yield</strong> and <strong>?@tbl-regression_tsw</strong> with the R^2 value. In conclusion, a comprehensive analysis incorporating other characteristics within the dataset is essential to fully understand the myriad factors influencing the yield of quinoa seeds.</p>
+<h1 data-number="5" id="references">5. References<ac:structured-macro ac:name="anchor" ac:schema-version="1" ac:local-id="a6aa6f25-0bee-4a7f-929b-71fcb7eba592" ac:macro-id="d2cb5be1217ae6e086bc60005e9d27b7"><ac:parameter ac:name="">references</ac:parameter></ac:structured-macro></h1>
+<div id="refs" role="list">
+<ac:structured-macro ac:name="anchor" ac:schema-version="1" ac:local-id="a6aa6f25-0bee-4a7f-929b-71fcb7eba592" ac:macro-id="d2cb5be1217ae6e086bc60005e9d27b7"><ac:parameter ac:name="">refs</ac:parameter></ac:structured-macro>
+</div>
 <div id="3ade8a4a-fb1d-4a6c-8409-ac45482d5fc9" class="hidden">
 
 </div>

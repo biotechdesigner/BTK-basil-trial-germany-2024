@@ -1,19 +1,428 @@
 ---
-title: "Data Analysis 1"
+title: "Basil Water Stress Experiment 1 DE 2024 | Data Analysis"
+subtitle: "Bioteksa Trials"
+author: "Victor Hugo Rivero"
+bibliography: "https://api.citedrive.com/bib/0ffe6857-a531-47fa-a32f-6ed0fd2467a1/references.bib?x=eyJpZCI6ICIwZmZlNjg1Ny1hNTMxLTQ3ZmEtYTMyZi02ZWQwZmQyNDY3YTEiLCAidXNlciI6ICI4Mjk3IiwgInNpZ25hdHVyZSI6ICJlM2ZkY2U1NzgyMWRlOTJiMWU0MzI4MjQ5N2NhZWZiNzZlOGIwZmFjNGRhZGI4NjRlYTNjOGY3MDA2NTYzYTAxIn0=/bibliography.bib"
+number-sections: true
+format: 
+  confluence-html:
+    code-overflow: wrap
+    fig-width: 8
+    fig-height: 4
+    code-fold: true
+    toc: true
+    overflow: wrap
+    toc-depth: 1
+    toc-location: left
+    embed-resources: true # single html file
+    anchor-sections: true
+    smooth-scroll: true
+execute:
+    tbl-cap-location: bottom
+jupyter: python3
 ---
 
-## Overview
+# Dataset and libraries used for the analysis
+Below is a list of libraries used in conjunction with the R programming language, Quarto, and Jupyter for the creation of this statistical analysis.
+All datasets and libraries needed were imported at the start of the quarto project. Data was imported into a GitHub Repository to access it directly. [Access the repository](https://github.com/biotechdesigner/quinoa-analysis-coursework/tree/main). The raw data `data` was selected to include only the traits desired. This data is referred to as `selected_data` in the project code. The dataset `data` was modified to treat missing data as described in @sec-miss. This data is referred in this project as `imputed_data`
+```{python data_libraries_import}
+#| output: false
+import math
+import pandas as pd
+import numpy as np
+import scipy.stats as stats
+import matplotlib.pyplot as plt
+import seaborn as sns
+import statsmodels.api as sm
+from itables import options, show
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla id accumsan justo. Nulla ut lectus efficitur, aliquet tellus elementum, hendrerit mi. Aenean risus purus, finibus eu consectetur sit amet, maximus ut tortor. Vivamus congue mollis ante in interdum. In at semper turpis, sed faucibus arcu. Nullam ultrices, neque nec mattis dictum, risus ante mattis diam, sit amet sagittis arcu ante ut urna.
+# Import data
+data = pd.read_csv('btk_de_basil_2024.csv')
 
-Quisque cursus eros dictum justo varius condimentum a ac risus. Vestibulum sodales, quam quis dignissim scelerisque, tellus turpis mollis sapien, tempor lacinia quam elit at urna. Etiam pharetra sapien at tristique tincidunt. Duis vitae lectus nisl. Proin pharetra, ante a iaculis interdum, lectus massa tempor leo, eu luctus lorem sapien vel sem. Morbi vitae tincidunt libero, eget tincidunt quam.
+# Convert 'TimeStamp' column to datetime
+data['TimeStamp'] = pd.to_datetime(data['TimeStamp'])
 
-## Key Milestones
+# Get list of treatments in the dataset
+treatments = data['Treatment'].unique()
 
-Donec elementum a neque a rutrum. Nulla a quam in eros ornare fringilla at eget mi. Sed dui dolor, porta mollis auctor in, finibus vel tellus. Nunc quis ipsum sit amet magna vulputate tincidunt. Vivamus eget ornare dolor, eget rhoncus purus.
+# Group data by treatment
+grouped_data_treatment = data.groupby('Treatment')
 
-Praesent ac mauris quis magna placerat hendrerit. Fusce viverra nulla nec urna pulvinar semper.
+# Get numerical variables
+numerical_variables = data.select_dtypes(include=['float64', 'int64']).columns.tolist()
 
-Nunc sit amet libero ut ligula venenatis volutpat. Integer scelerisque iaculis lacus, et ornare velit placerat nec.
+# Get categorical variables, excluding 'TimeStamp'
+categorical_variables = [col for col in data.select_dtypes(include=['object', 'category']).columns if col != 'TimeStamp']
 
-Phasellus nisi ante, dignissim quis metus nec, consequat bibendum lacus.
+# Descriptive analysis for numerical variables
+numerical_descriptive_stats = {var: grouped_data_treatment[var].describe().transpose() for var in numerical_variables}
+
+# Descriptive analysis for categorical variables
+categorical_descriptive_stats = {}
+for var in categorical_variables:
+    counts = data.pivot_table(index='Treatment', columns=var, aggfunc='size', fill_value=0)
+    categorical_descriptive_stats[var] = counts
+
+# Function to create a descriptive analysis of a variable by treatment
+def descriptive_analysis(variable):
+    if variable in numerical_descriptive_stats:
+        analysis = numerical_descriptive_stats[variable]
+        pd.set_option('display.max_columns', None)
+        pd.set_option('display.max_rows', None)
+        print(f"Descriptive analysis for numeric variable '{variable}':")
+        display(analysis)
+    elif variable in categorical_descriptive_stats:
+        analysis = categorical_descriptive_stats[variable]
+        pd.set_option('display.max_columns', None)
+        pd.set_option('display.max_rows', None)
+        print(f"Descriptive analysis for categorical variable '{variable}':")
+        display(analysis)
+    else:
+        print(f"The variable '{variable}' is not in the dataset")
+
+# Example usage
+# descriptive_analysis('PlantHeight')
+
+# Show lists of variables and treatments
+print("Treatments available:", treatments)
+print("Numeric variables:", numerical_variables)
+print("Cualitative variables", categorical_variables)
+
+# Only include the data of the final date of the experiment for data analysis
+final_date = '2024-05-25'
+data_may25 = data[data['TimeStamp'] == final_date]
+
+# data.head()
+pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)
+grouped_data_treatment.head()
+
+```
+
+
+# test
+```{python test}
+#| label: tbl-test
+#| #| tbl-cap: "Descriptive analysis of Variables"
+#| warning: false
+#| scrollable: true
+#| output: true
+
+descriptive_analysis('PlantHeight')
+
+```
+
+# Data Description
+
+The dataset contains measurements from 360 quinoa accessions, detailing various seed traits retreived from @craine-2023. The data includes continuous measurements such as lysine content (measured in mg/g), yield (measured in g/plant) and Thousand Seed Weight, or TSW (measured in grams).
+
+# Statistical analysis
+
+## Plant Height
+
+### Descriptive analysis
+```{python descriptive-analysis-plantheight}
+#| label: tbl-descriptive-analysis-plantheight
+#| tbl-cap: "Descriptive analysis of Plant Height"
+#| warning: false
+#| scrollable: true
+#| output: true
+
+#todo add standard error
+descr_analysis_PlantHeight = grouped_data_treatment['PlantHeight'].describe().transpose()
+# Set display options to show all columns and rows
+pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)
+
+# Print the full descriptive statistics table
+show(descr_analysis_PlantHeight, "")
+```
+
+### Normality Test
+Debido a que se tiene una muestra total
+```{python normality-test-plantheight}
+#| label: tbl-normality-test-plantheight
+#| tbl-cap: "Normality test of Plant Height by treatment"
+#| warning: false
+#| output: true
+
+#todo add dispersion graphic
+from scipy.stats import shapiro, kstest, anderson
+import scipy.stats as stats
+normality_results = {}
+variables = ['PlantHeight', 'StemDiameter', 'LeafArea', 'LeafNumber']
+
+# Normality test for every treatment and variable
+for Treatment, group in grouped_data_treatment:
+    normality_results[Treatment] = {}
+    for variable in variables:
+        # filter non-null data
+        valid_data = group[variable].dropna()
+        if len(valid_data) > 0:  # Validation that there is enough data to test
+            # Shapiro-Wilk test
+            shapiro_test = shapiro(valid_data)
+            # Kolmogorov-Smirnov test
+            ks_test = kstest(valid_data, 'norm')
+            # Anderson-Darling test
+            anderson_test = anderson(valid_data)
+
+            # Save results
+            normality_results[Treatment][variable] = {
+                'Shapiro-Wilk': shapiro_test,
+                'Kolmogorov-Smirnov': ks_test,
+                'Anderson-Darling': anderson_test
+            }
+
+# Show results
+#import pprint
+#pprint.pprint(normality_results)
+#print(normality_results)
+
+def plot_histogram_qq(data, treatment, variable, normality_results):
+    valid_data = data[data['Treatment'] == treatment][variable].dropna()
+    
+    if len(valid_data) > 0:
+        # Histograma
+        plt.figure(figsize=(12, 6))
+        plt.subplot(1, 2, 1)
+        plt.hist(valid_data, bins=10, color='blue', edgecolor='black', alpha=0.7)
+        plt.title(f'Histogram of Frequency for {variable} ({treatment})')
+        plt.xlabel(variable)
+        plt.ylabel('Frecuency')
+        
+        # Gráfico Q-Q
+        plt.subplot(1, 2, 2)
+        stats.probplot(valid_data, dist="norm", plot=plt)
+        plt.title(f'Q-Q Graphic of {variable} ({treatment})')
+        plt.xlabel('Normal Theoretical quantiles')
+        plt.ylabel('Normal Data Quantiles')
+        
+        # Obtener resultados de los tests
+        shapiro_res = normality_results[treatment][variable]['Shapiro-Wilk']
+        ks_res = normality_results[treatment][variable]['Kolmogorov-Smirnov']
+        anderson_res = normality_results[treatment][variable]['Anderson-Darling']
+        
+        # Crear texto descriptivo
+        description = (f"Shapiro-Wilk p-value: {shapiro_res.pvalue:.3e}\n"
+                       f"Kolmogorov-Smirnov p-value: {ks_res.pvalue:.3e}\n"
+                       f"Anderson-Darling statistic: {anderson_res.statistic:.3f}")
+        
+        # Add descriptive text to histogram
+        plt.subplot(1, 2, 1)
+        plt.text(0.95, 0.95, description, transform=plt.gca().transAxes, fontsize=10,
+                 verticalalignment='top', horizontalalignment='right', bbox=dict(facecolor='white', alpha=0.5))
+        
+        # Show graphics
+        plt.tight_layout()
+        plt.show()
+        
+        # Normality test
+        print("Normality analysis")
+        print(f"Shapiro-Wilk p-value: {shapiro_res.pvalue:.3e} ({'Not enough evidence to reject' if shapiro_res.pvalue > 0.05 else 'Rejects'} Normality hipothesis)")
+        print(f"Kolmogorov-Smirnov p-value: {ks_res.pvalue:.3e} ({'Not enough evidence to reject' if ks_res.pvalue > 0.05 else 'Rejects'} Normality hipothesis)")
+        print(f"Anderson-Darling statistic: {anderson_res.statistic:.3f} (Compare with critical values: {anderson_res.critical_values})")
+    else:
+        print(f"Not enough data for {variable} in treatment {treatment}")
+
+
+# Example of use for treatment B100 and PlantHeight Variable
+plot_histogram_qq(data, 'B80', 'PlantHeight', normality_results)
+
+
+
+```
+
+### Frequency Distribution
+```{python frequency-distribution-plantheight}
+#| label: fig-frequency-distribution-plantheight
+#| tbl-cap: "Frequency Distribution of Plant Height"
+#| warning: false
+#| output: true
+
+fig, axes = plt.subplots(nrows=2, ncols=3, figsize=(18, 12))
+axes = axes.flatten()
+
+
+for ax, (treatment, group) in zip(axes, grouped_data_treatment):
+    ax.hist(group['PlantHeight'], bins=10, edgecolor='black', alpha=0.7)
+    ax.set_title(f'Frequency Distribution of Plant Height for Treatment {treatment}')
+    ax.set_xlabel('Plant Height')
+    ax.set_ylabel('Frequency')
+    ax.grid(axis='y', alpha=0.75)
+
+# Hide any empty subplots
+for i in range(len(grouped_data_treatment), len(axes)):
+    fig.delaxes(axes[i])
+
+# Adjust layout
+plt.tight_layout()
+
+# Save the combined figure as an image
+plt.savefig('combined_histograms.png')
+
+# Show the combined figure
+plt.show()
+```
+
+## Stem Diameter
+
+### Descriptive analysis
+```{python descriptive-analysis-stemdiameter}
+#| label: tbl-descriptive-analysis-stemdiameter
+#| tbl-cap: "Descriptive analysis of Stem Diameter"
+#| warning: false
+#| scrollable: true
+#| output: true
+
+descr_analysis_StemDiam = grouped_data_treatment['StemDiameter'].describe().transpose()
+# Set display options to show all columns and rows
+pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)
+
+# Print the full descriptive statistics table
+show(descr_analysis_StemDiam, "")
+```
+
+
+## Missing Data Assessment {#sec-miss}
+
+There is not really missing data, the cuantitative variables of the plant were measured every week, but the water stress incidents were taken every day because irrigation was made everyday by hand, so pandas library is used because it can handle missing data without the need to manipulate the data sheet. 
+
+## Frequency Distribution Analysis {#sec-dis}
+
+```{python histogram_plot}
+#| label: frequency--distribution
+#| fig-cap: "Histogram plot of the frequency distribution of cuantitative variables"
+#| warning: false
+
+```
+
+From @fig-lysine-distribution, it is visually inferred that the data seems to be approximately normally distributed with a single peak and symmetric shape, however, it doesn´t follow exactly the bell curve, so it is needed to do a nromality test to make sure how the data is distributed.
+
+## Normality Test
+
+```{r normal_distribution}
+#| label: tbl-normal-distribution
+#| tbl-cap: "Shapiro_Wilk test results for lysine content"
+#| warning: false
+
+#Test for normal distribution
+normality <- shapiro.test(imputed_data$Lysine.14.mgG)
+result <- data.frame(
+    W = normality$statistic,
+    Pvalue = normality$p.value
+)
+kable(result, align = "llr")
+```
+
+The Shapiro-Wilk normality test has a p-value of almost 0 which is far below any conventional alpha level (e.g., 0.05). despite the high W value, the test finds significant evidence to suggest that the lysine content does not follow a normal distribution. For that reason, this will be needed to take into account the correlation and regression analyses.
+
+## Correlation analysis {#sec-corr}
+
+```{r correlation_analysis_yield}
+#| label: fig-correlation_yield
+#| fig-cap: "Correlation analysis between Lysine content and Yield traits"
+#| warning: false
+#| fig.width: 8
+#| fig.height: 4
+
+#Add a column in imputed data with Lysine content transformed to logaritmic values
+imputed_data$Lysine.14.mgG_log <- log(imputed_data$Lysine.14.mgG)
+
+#Correlation analysis
+cor_value_yield <- cor(imputed_data$Lysine.14.mgG_log, imputed_data$Yield_g, 
+method = "spearman")
+
+# Correlation plot
+ggplot(imputed_data, aes(x = Lysine.14.mgG_log, y = Yield_g)) +
+  geom_point(shape = 21, fill = '#0f993d', color = 'white', size = 3) +
+  annotate("text", x = Inf, y = Inf, label = paste("Spearman Correlation: ", 
+    round(cor_value_yield, 5)),
+           hjust = 1.1, vjust = 1.1) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Lysine content  log(mg/g)", y = "Yield (g/plant)") 
+```
+
+### Correlation of Lysine content and TSW
+```{r correlation_analysis_tsw}
+#| label: fig-correlation_tsw
+#| fig-cap: "Correlation analysis between Lysine content and Thousand Seed Weight (TSW)"
+#| warning: false
+
+#Correlation analysis
+cor_value_tsw <- cor(imputed_data$Lysine.14.mgG_log, imputed_data$TSW, 
+method = "spearman")
+
+# Correlation plot
+ggplot(
+  imputed_data, aes(x = Lysine.14.mgG_log, y = TSW)) +
+  geom_point(shape = 21, fill = '#0f993d', color = 'white', size = 3) +
+  annotate("text", x = Inf, y = Inf, label = paste("Spearman Correlation: ", 
+  round(cor_value_tsw, 5)), hjust = 1.1, vjust = 1.1) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Lysine content log(mg/g)", y = "TSW (g)"
+)
+```
+
+As can be seen, the correlation level between yield variables and lysine content is moderately positive (0.30 with yield and 0.39 with TSW) similar as reported in @craine-2023, indicating that when the lysine content in quinoa seeds is higher, the yield and TSW will also be higher.
+
+## Regression analysis {#sec-reg}
+
+### Regression analysis and ecuation of Lysine content and Yield
+ This analysis is crucial for understanding the relationship between these two variables, indicating whether higher lysine content correlates with higher yield. In @tbl-regression_yield, it is observed that the p-value is less than 0.05, leading to the rejection of the null hypothesis and the conclusion that there is a significant relationship between lysine content and yield. Furthermore, the R^2 value indicates that approximately 10% of the variability in Yield_g is explained by the model. This suggests that there are other factors influencing the yield that are not accounted for in this analysis. Additionally, this analysis is based on a single value derived from many, so it was expected that lysine content would not explain the entire model. For this same reason, the reported regression equation will not be as precise for determining yield values.
+
+```{r regression_analysis_yield}
+#| label: tbl-regression_yield
+#| tbl-cap: "Regression analysis between Lysine content and Yield"
+#| warning: false
+
+#Regression analysis 
+reg1_yield <- lm(Yield_g ~ Lysine.14.mgG_log, data = imputed_data)
+sum_reg1_yield <- summary(reg1_yield)
+broom_yield_summary <- broom::glance(sum_reg1_yield)
+knitr::kable(broom_yield_summary, align = "llllllrr")
+```
+
+```{r coef_analysis_yield}
+#| label: coef_yield
+#| warning: false
+#| cap: "Regression ecuation between Lysine content and Yield"
+
+#Regression and coefficient analysis
+coefs_yield <- coef(reg1_yield)
+paste("Y =", coefs_yield[1], "+", coefs_yield[2], "* X")
+
+```
+
+### Regression analysis and ecuation of Lysine content and Thousand Seed Weight TSW
+The outcome of this analysis delineates the potential relationship between lysine content and Thousand Seed Weight (TSW). Similar to the previous regression analysis, the null hypothesis can be rejected, leading to the conclusion that there is a highly significant relationship between lysine content and TSW. However, the R^2 value is quite low (13%), indicating that there are other factors affecting TSW that are not considered in this analysis, which was to be expected.
+```{r regression_analysis_tsw}
+#| label: tbl-regression_tsw
+#| tbl-cap: "Regression analysis between Lysine content and Thousand Seed Weight (TSW)"
+#| warning: false
+
+#Regression analysis 
+reg1_tsw <- lm(TSW ~ Lysine.14.mgG_log, data = imputed_data)
+sum_reg1_tsw <- summary(reg1_tsw)
+broom_tsw_summary <- broom::glance(sum_reg1_tsw)
+knitr::kable(broom_tsw_summary, align = "llllllrr")
+```
+
+```{r coef_analysis_tsw}
+#| label: coef_tsw
+#| warning: false
+#| cap: "Regression ecuation between Lysine content and Thousand Seed Weight (TSW)"
+
+#Regression and coefficient analysis
+coefs_yield <- coef(reg1_tsw)
+paste("Y =", coefs_yield[1], "+", coefs_yield[2], "* X")
+```
+
+
+# Discussion
+The analysis of quinoa seed traits, particularly focusing on lysine content, yield, and thousand seed weight (TSW), provides some insights into quinoa's genetic diversity and agricultural potential. In the initial phase of the analysis, a significant proportion of data pertaining to lysine content was found to be missing in @fig-missing-data-interest, presenting a substantial challenge in the data evaluation process. This issue could arise from a multitude of factors, each with varying implications. Consequently, a decision was made to retain the data rows and employ multiple imputation techniques. This approach aimed to provide an alternative perspective to the analyses previously conducted by @craine-2023. Following the implementation of multiple imputation, the deviation of the dataset from a normal distribution suggested potential specific influences on the yield and Thousand Seed Weight (TSW) of the quinoa seeds as it can be seen in @tbl-normal-distribution. Subsequent regression and correlation analyses, focusing on the lysine content in relation to yield and TSW, confirmed the existence of a moderate positive correlation, as seen in @fig-correlation_yield and @fig-correlation_tsw. It was observed that lysine content in quinoa seeds positively impacts both yield and TSW. Nonetheless, it is important to recognize that this is not the only influential factor in the model construction, which was confirmed in @tbl-regression_yield and @tbl-regression_tsw with the R^2 value. In conclusion, a comprehensive analysis incorporating other characteristics within the dataset is essential to fully understand the myriad factors influencing the yield of quinoa seeds.
+
+# References
+
+::: {#refs}
+:::
